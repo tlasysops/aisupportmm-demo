@@ -15,3 +15,5 @@ Frontend app: API_URL=https://apilayer.aisupportmm.com           | container HTT
 ## GitHub
 Variables: CAPROVER_SERVER, BACKEND_APP, FRONTEND_APP
 Secrets:   BACKEND_DEPLOY_TOKEN, FRONTEND_DEPLOY_TOKEN
+
+"version1"
