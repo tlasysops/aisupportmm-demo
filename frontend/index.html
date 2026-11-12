@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sample App</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  .card { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  code { background: #eee; padding: 2px 6px; border-radius: 4px; }
+  li { margin: .25rem 0; }
+  input { padding: .4rem; } button { padding: .4rem .8rem; }
+  .ok { color: green; } .bad { color: crimson; }
+</style>
+</head>
+<body>
+<h1>Sample App</h1>
+
+<div class="card">
+  <h3>Backend status</h3>
+  <div id="info">loading…</div>
+</div>
+
+<div class="card">
+  <h3>Items (from DB)</h3>
+  <input id="name" placeholder="item name">
+  <button id="add">Add</button>
+  <ul id="list"></ul>
+  <div id="err" class="bad"></div>
+</div>
+
+<script src="/config.js"></script>
+<script>
+const API = window.API_URL || '';
+const $ = id => document.getElementById(id);
+
+async function loadInfo() {
+  try {
+    const r = await fetch(API + '/api/info');
+    const d = await r.json();
+    $('info').innerHTML =
+      `api: <code>${API}</code><br>commit: <code>${d.commit}</code><br>host: <code>${d.hostname}</code><br>` +
+      `db: <span class="${d.db === 'connected' ? 'ok' : 'bad'}">${d.db}</span>`;
+  } catch (e) {
+    $('info').innerHTML = '<span class="bad">backend unreachable</span>';
+  }
+}
+
+async function loadItems() {
+  $('err').textContent = '';
+  try {
+    const r = await fetch(API + '/api/items');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.status);
+    $('list').innerHTML = d.map(i => `<li>#${i.id} ${i.name.replace(/</g,'&lt;')}</li>`).join('');
+  } catch (e) { $('err').textContent = e.message; }
+}
+
+$('add').onclick = async () => {
+  const name = $('name').value.trim();
+  if (!name) return;
+  const r = await fetch(API + '/api/items', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name})
+  });
+  if (!r.ok) { $('err').textContent = (await r.json()).error; return; }
+  $('name').value = '';
+  loadItems();
+};
+
+loadInfo(); loadItems();
+</script>
+</body>
+</html>

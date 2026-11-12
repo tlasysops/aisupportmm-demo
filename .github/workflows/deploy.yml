@@ -1,0 +1,61 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.22' }
+      - name: Test
+        working-directory: backend
+        run: go mod tidy && go test -v ./...
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image name
+        run: echo "IMAGE_URL=$(echo ghcr.io/${{ github.repository }}-backend:${GITHUB_SHA::7} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.IMAGE_URL }}
+          build-args: GIT_COMMIT=${{ github.sha }}
+      - uses: caprover/deploy-from-github@4f2b50c37be9f3f325c67b16660e321395841040
+        with:
+          server: ${{ vars.CAPROVER_SERVER }}
+          app: ${{ vars.BACKEND_APP }}
+          token: ${{ secrets.BACKEND_DEPLOY_TOKEN }}
+          image: ${{ env.IMAGE_URL }}
+
+  frontend:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image name
+        run: echo "IMAGE_URL=$(echo ghcr.io/${{ github.repository }}-frontend:${GITHUB_SHA::7} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ env.IMAGE_URL }}
+      - uses: caprover/deploy-from-github@4f2b50c37be9f3f325c67b16660e321395841040
+        with:
+          server: ${{ vars.CAPROVER_SERVER }}
+          app: ${{ vars.FRONTEND_APP }}
+          token: ${{ secrets.FRONTEND_DEPLOY_TOKEN }}
+          image: ${{ env.IMAGE_URL }}

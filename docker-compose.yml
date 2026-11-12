@@ -1,0 +1,20 @@
+# Local testing only. In production you use your existing DB.
+# Frontend: http://localhost:8080   Backend: http://localhost:8081
+services:
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/app?sslmode=disable}
+      ALLOWED_ORIGIN: http://localhost:8080
+    ports: ["8081:8080"]
+    depends_on: [db]
+  frontend:
+    build: ./frontend
+    environment:
+      API_URL: http://localhost:8081
+    ports: ["8080:80"]
+  db:   # delete this service (and depends_on) if you use your existing DB
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app
